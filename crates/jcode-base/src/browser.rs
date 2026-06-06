@@ -802,7 +802,22 @@ async fn install_extension() -> Result<String> {
     }
     #[cfg(target_os = "macos")]
     {
-        let _ = tokio::process::Command::new("open").arg(&xpi_url).spawn();
+        // Try Firefox explicitly first; fall back to generic `open` so the user
+        // sees a clear error if Firefox is not installed.
+        let result = tokio::process::Command::new("open")
+            .args(["-a", "Firefox"])
+            .arg(&xpi_url)
+            .spawn();
+        match result {
+            Ok(_) => {}
+            Err(_) => {
+                // Fallback: try bundle ID, then plain `open`
+                let _ = tokio::process::Command::new("open")
+                    .args(["-b", "org.mozilla.firefox"])
+                    .arg(&xpi_url)
+                    .spawn();
+            }
+        }
     }
     #[cfg(target_os = "windows")]
     {
